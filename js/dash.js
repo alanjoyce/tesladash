@@ -38,7 +38,9 @@ function updateCity(locationData) {
 }
 
 function updateWeather(weatherData) {
- console.log(weatherData); 
+  console.log(weatherData);
+  $("#weatherDegrees").html(weatherData.currentobservation.Temp);
+  $("#weatherText").html(weatherData.data.weather[0]);
 }
 
 function callAPI(url, callback) {
