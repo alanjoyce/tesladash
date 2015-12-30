@@ -6,11 +6,14 @@
     <link href="css/reset.css" rel="stylesheet" type="text/css" />
     <link href="css/dash.css" rel="stylesheet" type="text/css" />
     <script type="text/javascript" src="js/dash.js" /></script>
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>	
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>	
   </head>
-  <body onload=''>
+  <body onload='init()'>
     <div class="statusDisplay">
-      11:07 AM
+      11:07 AM<br />
+      Lat: <span id="latDisplay"></span><br />
+      Lon: <span id="lonDisplay"></span><br />
+      City: <span id="cityDisplay"></span>, <span id="stateDisplay"></span><br />
     </div>
     <div class="feedContainer">
       <div class="feedDisplay">
