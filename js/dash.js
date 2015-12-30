@@ -1,4 +1,5 @@
-var currentPos;
+var currentLat;
+var currentLon;
 var currentCity;
 var currentState;
 
@@ -7,17 +8,19 @@ function init() {
 }
 
 function updatePosition(position) {
-  currentPos = position;
+  console.log(position);
 
-  console.log(currentPos);
+  currentLat = position.coords.latitude;
+  currentLon = position.coords.longitude;
 
-  var lat = currentPos.coords.latitude;
-  var lon = currentPos.coords.longitude;
-
-  $("#latDisplay").html(lat);
-  $("#lonDisplay").html(lon);
-
-  callAPI("http://maps.googleapis.com/maps/api/geocode/json?latlng=" + lat + "," + lon, updateCity);
+  // $("#latDisplay").html(currentLat);
+  // $("#lonDisplay").html(currentLon);
+  
+  //Update the current city name
+  callAPI("http://maps.googleapis.com/maps/api/geocode/json?latlng=" + currentLat + "," + currentLon, updateCity);
+  
+  //Update the current weather
+  callAPI("http://forecast.weather.gov/MapClick.php?lat=" + currentLat + "&lon=" + currentLon + "&FcstType=json", updateWeather);
 }
 
 function updateCity(locationData) {
@@ -32,6 +35,10 @@ function updateCity(locationData) {
 
   $("#cityDisplay").html(currentCity);
   $("#stateDisplay").html(currentState);
+}
+
+function updateWeather(weatherData) {
+ console.log(weatherData); 
 }
 
 function callAPI(url, callback) {
