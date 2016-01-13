@@ -61,4 +61,13 @@ body {
   overflow: hidden;
 }
 
+.photoCredit {
+  position: absolute;
+  right: 1.5%;
+  bottom: 2.5%;
+  font-size: 12px;
+  opacity: 0.5;
+  text-align: right;
+}
+
 

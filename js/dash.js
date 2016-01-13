@@ -4,7 +4,7 @@ var currentCity;
 var currentState;
 var currentTemp;
 var currentWeather;
-var currentPhotoURL;
+var currentPhotoID;
 var currentPlaceDescription;
 
 var PHOTO_TAGS = "nature,city,landscape,beautiful,scenic,sky";
@@ -85,7 +85,11 @@ function updatePicture(pictureData) {
   console.log(pictureData);
   if(pictureData.photos.total > 0) {
     var photoID = pictureData.photos.photo[0].id;
-    callAPI("https://api.flickr.com/services/rest/?method=flickr.photos.getSizes&api_key=" + FLICKR_KEY + "&photo_id=" + photoID + "&format=json&nojsoncallback=1", updateBackgroundImage);
+    if(photoID && photoID != currentPhotoID) {
+      callAPI("https://api.flickr.com/services/rest/?method=flickr.photos.getSizes&api_key=" + FLICKR_KEY + "&photo_id=" + photoID + "&format=json&nojsoncallback=1", updateBackgroundImage);
+      callAPI("https://api.flickr.com/services/rest/?method=flickr.people.getInfo&api_key=" + FLICKR_KEY + "&user_id=" + pictureData.photos.photo[0].owner + "&format=json&nojsoncallback=1", updatePhotoOwner);
+      currentPhotoID = photoID;
+    }
   }
 }
 
@@ -99,7 +103,7 @@ function updateBackgroundImage(imageData) {
       break;
     }
   }
-  if(photoURL && photoURL != currentPhotoURL) {
+  if(photoURL) {
     var photoCSS = "url(" + photoURL + ") no-repeat center fixed";
     
     //Fade to the new image
@@ -107,7 +111,14 @@ function updateBackgroundImage(imageData) {
     $("#backgroundImageSwap").css('display', "block");
     $("#backgroundImage").css('background', photoCSS);
     $("#backgroundImageSwap").fadeOut(1000, function(){$("#backgroundImageSwap").css('background', photoCSS);});
-    currentPhotoURL = photoURL;
+  }
+}
+
+function updatePhotoOwner(ownerData) {
+  console.log(ownerData);
+  var ownerUsername = ownerData.person.username._content;
+  if(ownerUsername) {
+    $("#photoOwnerName").html(ownerUsername);
   }
 }
 
