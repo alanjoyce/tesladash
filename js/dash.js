@@ -40,6 +40,9 @@ function updateCity(locationData) {
 
   $("#cityDisplay").html(currentCity);
   $("#stateDisplay").html(currentState);
+
+  //Update the current place description
+  callAPI("https://en.wikipedia.org/w/api.php?format=json&callback=?&action=query&prop=extracts&titles=" + currentCity + ", " + currentState + "&redirects=true", updatePlaceDescription);
 }
 
 function updateWeather(weatherData) {
@@ -50,8 +53,10 @@ function updateWeather(weatherData) {
 
 function updatePicture(pictureData) {
   console.log(pictureData);
-  var photoID = pictureData.photos.photo[0].id;
-  callAPI("https://api.flickr.com/services/rest/?method=flickr.photos.getSizes&api_key=" + FLICKR_KEY + "&photo_id=" + photoID + "&format=json&nojsoncallback=1", updateBackgroundImage);
+  if(pictureData.photos.total > 0) {
+    var photoID = pictureData.photos.photo[0].id;
+    callAPI("https://api.flickr.com/services/rest/?method=flickr.photos.getSizes&api_key=" + FLICKR_KEY + "&photo_id=" + photoID + "&format=json&nojsoncallback=1", updateBackgroundImage);
+  }
 }
 
 function updateBackgroundImage(imageData) {
@@ -65,12 +70,26 @@ function updateBackgroundImage(imageData) {
     }
   }
   if(photoURL) {
-    $("#backgroundImage").css('background-image', "url(" + photoURL + ")");
+    $("#backgroundImage").css('background', "url(" + photoURL + ") no-repeat center fixed");
   }
 }
 
+function updatePlaceDescription(descriptionData) {
+  console.log(descriptionData);
+  var description;
+  for(var key in descriptionData.query.pages) {
+    description = descriptionData.query.pages[key].extract;
+  }
+  
+  //Stop the description at the end of the first paragraph
+  description = description.substring(0, description.indexOf("</p>") + 3);
+
+  $("#placeDescription").html(description);
+}
+
 function callAPI(url, callback) {
-  var request = new XMLHttpRequest();
+  $.getJSON(url, callback);
+  /*var request = new XMLHttpRequest();
   request.open("GET", url, true);
   request.onreadystatechange = function() {
     if(request.readyState == 4 && request.status == 200) {
@@ -78,5 +97,5 @@ function callAPI(url, callback) {
       callback(data);
     }
   }
-  request.send();
+  request.send();*/
 }
