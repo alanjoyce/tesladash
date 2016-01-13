@@ -2,10 +2,22 @@ var currentLat;
 var currentLon;
 var currentCity;
 var currentState;
+var currentTemp;
+var currentWeather;
+var currentPhotoURL;
+var currentPlaceDescription;
 
 var PHOTO_TAGS = "nature,city,landscape,beautiful,scenic,sky";
+var DATA_REFRESH_SECS = 10;
+var PAGE_REFRESH_SECS = 6000;
 
 function init() {
+  getPosition();
+  setInterval(getPosition, DATA_REFRESH_SECS * 1000);
+  setTimeout(function(){window.location.reload();}, PAGE_REFRESH_SECS * 1000);
+}
+
+function getPosition() {
   navigator.geolocation.getCurrentPosition(updatePosition, null, {enableHighAccuracy: true, maximumAge: 0});
 }
 
@@ -29,17 +41,26 @@ function updatePosition(position) {
 }
 
 function updateCity(locationData) {
+  var city;
+  var state;
+
   $.each(locationData.results[0].address_components, function(i, component) {
     if(component.types[0] == "locality") {
-      currentCity = component.long_name;
+      city = component.long_name;
     }
     else if(component.types[0] == "administrative_area_level_1") {
-      currentState = component.short_name;
+      state = component.short_name;
     }
   });
-
-  $("#cityDisplay").html(currentCity);
-  $("#stateDisplay").html(currentState);
+  
+  if(city && city != currentCity) {
+    $("#cityDisplay").html(city);
+    currentCity = city;
+  }
+  if(state && state != currentState) {
+    $("#stateDisplay").html(state);
+    currentState = state;
+  }
 
   //Update the current place description
   callAPI("https://en.wikipedia.org/w/api.php?format=json&callback=?&action=query&prop=extracts&titles=" + currentCity + ", " + currentState + "&redirects=true", updatePlaceDescription);
@@ -47,8 +68,17 @@ function updateCity(locationData) {
 
 function updateWeather(weatherData) {
   console.log(weatherData);
-  $("#weatherDegrees").html(weatherData.currentobservation.Temp);
-  $("#weatherText").html(weatherData.data.weather[0]);
+  var temp = weatherData.currentobservation.Temp;
+  var weather = weatherData.data.weather[0];
+
+  if(temp && temp != currentTemp) {
+    $("#weatherDegrees").html(weatherData.currentobservation.Temp);
+    currentTemp = temp;
+  }
+  if(weather && weather != currentWeather) {
+    $("#weatherText").html(weatherData.data.weather[0]);
+    currentWeather = weather;
+  }
 }
 
 function updatePicture(pictureData) {
@@ -69,8 +99,15 @@ function updateBackgroundImage(imageData) {
       break;
     }
   }
-  if(photoURL) {
-    $("#backgroundImage").css('background', "url(" + photoURL + ") no-repeat center fixed");
+  if(photoURL && photoURL != currentPhotoURL) {
+    var photoCSS = "url(" + photoURL + ") no-repeat center fixed";
+    
+    //Fade to the new image
+    $("#backgroundImageSwap").css('opacity', 1.0);
+    $("#backgroundImageSwap").css('display', "block");
+    $("#backgroundImage").css('background', photoCSS);
+    $("#backgroundImageSwap").fadeOut(1000, function(){$("#backgroundImageSwap").css('background', photoCSS);});
+    currentPhotoURL = photoURL;
   }
 }
 
@@ -83,19 +120,13 @@ function updatePlaceDescription(descriptionData) {
   
   //Stop the description at the end of the first paragraph
   description = description.substring(0, description.indexOf("</p>") + 3);
-
-  $("#placeDescription").html(description);
+  
+  if(description && description != currentPlaceDescription) {
+    $("#placeDescription").html(description);
+    currentPlaceDescription = description;
+  }
 }
 
 function callAPI(url, callback) {
   $.getJSON(url, callback);
-  /*var request = new XMLHttpRequest();
-  request.open("GET", url, true);
-  request.onreadystatechange = function() {
-    if(request.readyState == 4 && request.status == 200) {
-      var data = JSON.parse(request.responseText);
-      callback(data);
-    }
-  }
-  request.send();*/
 }
