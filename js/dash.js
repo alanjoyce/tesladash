@@ -8,7 +8,7 @@ var currentPhotoURL;
 var currentPlaceDescription;
 
 var PHOTO_TAGS = "nature,city,landscape,beautiful,scenic,sky";
-var DATA_REFRESH_SECS = 10;
+var DATA_REFRESH_SECS = 120;
 var PAGE_REFRESH_SECS = 6000;
 
 function init() {
