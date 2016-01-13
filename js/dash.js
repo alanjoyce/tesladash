@@ -3,6 +3,8 @@ var currentLon;
 var currentCity;
 var currentState;
 
+var PHOTO_TAGS = "nature,city,landscape,beautiful,scenic,sky";
+
 function init() {
   navigator.geolocation.getCurrentPosition(updatePosition, null, {enableHighAccuracy: true, maximumAge: 0});
 }
@@ -21,6 +23,9 @@ function updatePosition(position) {
   
   //Update the current weather
   callAPI("http://forecast.weather.gov/MapClick.php?lat=" + currentLat + "&lon=" + currentLon + "&FcstType=json", updateWeather);
+
+  //Update the current picture
+  callAPI("https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=" + FLICKR_KEY + "&lat=" + currentLat + "&lon=" + currentLon + "&content_type=1&media=photos&accuracy=11&tags=" + PHOTO_TAGS + "&sort=date-posted-desc&per_page=1&format=json&nojsoncallback=1", updatePicture);
 }
 
 function updateCity(locationData) {
@@ -41,6 +46,27 @@ function updateWeather(weatherData) {
   console.log(weatherData);
   $("#weatherDegrees").html(weatherData.currentobservation.Temp);
   $("#weatherText").html(weatherData.data.weather[0]);
+}
+
+function updatePicture(pictureData) {
+  console.log(pictureData);
+  var photoID = pictureData.photos.photo[0].id;
+  callAPI("https://api.flickr.com/services/rest/?method=flickr.photos.getSizes&api_key=" + FLICKR_KEY + "&photo_id=" + photoID + "&format=json&nojsoncallback=1", updateBackgroundImage);
+}
+
+function updateBackgroundImage(imageData) {
+  console.log(imageData);
+  var photoURL;
+  for(var i in imageData.sizes.size) {
+    var size = imageData.sizes.size[i];
+    photoURL = size.source;
+    if(size.width > 1160 && size.height > 1240) {
+      break;
+    }
+  }
+  if(photoURL) {
+    $("#backgroundImage").css('background-image', "url(" + photoURL + ")");
+  }
 }
 
 function callAPI(url, callback) {
