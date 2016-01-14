@@ -6,15 +6,17 @@ var currentTemp;
 var currentWeather;
 var currentPhotoID;
 var currentPlaceDescription;
+var photoCSS;
 
 var PHOTO_TAGS = "nature,city,landscape,beautiful,scenic,sky";
-var DATA_REFRESH_SECS = 120;
-var PAGE_REFRESH_SECS = 14400;
+var DATA_REFRESH_DELAY = 120 * 1000;
+var PAGE_REFRESH_DELAY = 14400 * 1000;
+var IMAGE_LOAD_DELAY = 10 * 1000;
 
 function init() {
   getPosition();
-  setInterval(getPosition, DATA_REFRESH_SECS * 1000);
-  setTimeout(function(){window.location.reload();}, PAGE_REFRESH_SECS * 1000);
+  setInterval(getPosition, DATA_REFRESH_DELAY);
+  setTimeout(function(){window.location.reload();}, PAGE_REFRESH_DELAY);
 }
 
 function getPosition() {
@@ -30,14 +32,17 @@ function updatePosition(position) {
   // $("#latDisplay").html(currentLat);
   // $("#lonDisplay").html(currentLon);
   
-  //Update the current city name
-  callAPI("http://maps.googleapis.com/maps/api/geocode/json?latlng=" + currentLat + "," + currentLon, updateCity);
-  
-  //Update the current weather
-  callAPI("http://forecast.weather.gov/MapClick.php?lat=" + currentLat + "&lon=" + currentLon + "&FcstType=json&callback=?", updateWeather);
-
   //Update the current picture
   callAPI("https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=" + FLICKR_KEY + "&lat=" + currentLat + "&lon=" + currentLon + "&content_type=1&media=photos&accuracy=11&tags=" + PHOTO_TAGS + "&sort=date-posted-desc&per_page=1&format=json&nojsoncallback=1", updatePicture);
+  
+  //Update the current city name (timed roughly with photo load)
+  setTimeout(function(){callAPI("http://maps.googleapis.com/maps/api/geocode/json?latlng=" + currentLat + "," + currentLon, updateCity);}, IMAGE_LOAD_DELAY);
+  
+  //Update the current weather (timed roughly with photo load)
+  setTimeout(function(){callAPI("http://forecast.weather.gov/MapClick.php?lat=" + currentLat + "&lon=" + currentLon + "&FcstType=json&callback=?", updateWeather);}, IMAGE_LOAD_DELAY);
+
+  //Make the status display visible
+  setTimeout(function(){$("#statusDisplay").css('display', "block");}, IMAGE_LOAD_DELAY);
 }
 
 function updateCity(locationData) {
@@ -56,14 +61,15 @@ function updateCity(locationData) {
   if(city && city != currentCity) {
     $("#cityDisplay").html(city);
     currentCity = city;
-  }
-  if(state && state != currentState) {
-    $("#stateDisplay").html(state);
-    currentState = state;
-  }
 
-  //Update the current place description
-  callAPI("https://en.wikipedia.org/w/api.php?format=json&callback=?&action=query&prop=extracts&titles=" + currentCity + ", " + currentState + "&redirects=true", updatePlaceDescription);
+    if(state && state != currentState) {
+      $("#stateDisplay").html(state);
+      currentState = state;
+    }
+
+    //Update the current place description
+    callAPI("https://en.wikipedia.org/w/api.php?format=json&callback=?&action=query&prop=extracts&titles=" + currentCity + ", " + currentState + "&redirects=true", updatePlaceDescription);
+  }
 }
 
 function updateWeather(weatherData) {
@@ -87,7 +93,7 @@ function updatePicture(pictureData) {
     var photoID = pictureData.photos.photo[0].id;
     if(photoID && photoID != currentPhotoID) {
       callAPI("https://api.flickr.com/services/rest/?method=flickr.photos.getSizes&api_key=" + FLICKR_KEY + "&photo_id=" + photoID + "&format=json&nojsoncallback=1", updateBackgroundImage);
-      callAPI("https://api.flickr.com/services/rest/?method=flickr.people.getInfo&api_key=" + FLICKR_KEY + "&user_id=" + pictureData.photos.photo[0].owner + "&format=json&nojsoncallback=1", updatePhotoOwner);
+      setTimeout(function(){callAPI("https://api.flickr.com/services/rest/?method=flickr.people.getInfo&api_key=" + FLICKR_KEY + "&user_id=" + pictureData.photos.photo[0].owner + "&format=json&nojsoncallback=1", updatePhotoOwner);}, IMAGE_LOAD_DELAY);
       currentPhotoID = photoID;
     }
   }
@@ -104,13 +110,13 @@ function updateBackgroundImage(imageData) {
     }
   }
   if(photoURL) {
-    var photoCSS = "url(" + photoURL + ") no-repeat center fixed";
+    photoCSS = "url(" + photoURL + ") no-repeat center fixed";
     
     //Fade to the new image
     $("#backgroundImageSwap").css('opacity', 1.0);
     $("#backgroundImageSwap").css('display', "block");
     $("#backgroundImage").css('background', photoCSS);
-    $("#backgroundImageSwap").fadeOut(1000, function(){$("#backgroundImageSwap").css('background', photoCSS);});
+    setTimeout(function(){$("#backgroundImageSwap").fadeOut(1000, function(){$("#backgroundImageSwap").css('background', photoCSS);});}, IMAGE_LOAD_DELAY);
   }
 }
 
