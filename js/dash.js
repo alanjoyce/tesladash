@@ -136,7 +136,7 @@ function updateTraffic(trafficData) {
   if(trafficData.alerts) {
     for(var i = 0; i < trafficData.alerts.length; i++) {
       var al = trafficData.alerts[i];
-      if(al.type == "CHIT_CHAT") {
+      if(al.type == "CHIT_CHAT" || al.type == "HAZARD") {
         continue;
       }
       alertsHTML += "<li>" + al.type;
