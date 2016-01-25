@@ -15,7 +15,7 @@ var currentPlaceDescription;
 var photoCSS;
 
 var PHOTO_TAGS = "nature,city,landscape,beautiful,scenic,sky";
-var DATA_REFRESH_DELAY = 60 * 1000;
+var DATA_REFRESH_DELAY = 20 * 1000;
 var PAGE_REFRESH_DELAY = 14400 * 1000;
 var IMAGE_LOAD_DELAY = 5 * 1000;
 
@@ -70,6 +70,14 @@ function updatePosition(position) {
     maxLat = maxLat + 0.005;
     minLon = minLon - 0.005;
     maxLon = maxLon + 0.005;
+    
+    /*
+    minLon = -122.0604314804077;
+    maxLon = -121.85622310638428;
+    minLat = 37.7150633814107;
+    maxLat = 37.815700449595646;
+    */
+
     setTimeout(function(){callAPI("traffic.php?left=" + minLon + "&right=" + maxLon + "&bottom=" + minLat + "&top=" + maxLat, updateTraffic);}, IMAGE_LOAD_DELAY);
   }
 
@@ -121,23 +129,24 @@ function updateWeather(weatherData) {
 }
 
 function updateTraffic(trafficData) {
-  console.log(trafficData);
+  //console.log(trafficData);
   var noneHTML = "<span class='none'>none</span>";
 
   var alertsHTML = "";
   if(trafficData.alerts) {
     for(var i = 0; i < trafficData.alerts.length; i++) {
-      var alert = trafficData.alerts[i];
-      if(alert.type == "CHAT_CHAT") {
+      var al = trafficData.alerts[i];
+      if(al.type == "CHIT_CHAT") {
         continue;
       }
-      alertsHTML += "<li>" + alert.type;
-      if(alert.subtype) {
-        alertsHTML += " / " + alert.subtype;
+      alertsHTML += "<li>" + al.type;
+      if(al.subtype) {
+        alertsHTML += "<br />" + al.subtype;
       }
-      if(alert.street) {
-        alertsHTML += "<br />" + alert.street;
-      }
+      if(al.street) {
+        alertsHTML += "<br />" + al.street;
+      } 
+      alertsHTML += " in " + Math.round(latLonDistance(currentLat, currentLon, al.location.y, al.location.x)) + " mi";
       alertsHTML += "</li>";
     }
   }
@@ -147,7 +156,7 @@ function updateTraffic(trafficData) {
   if(alertsHTML == "") {
     alertsHTML = noneHTML;
   }
-  $("#alertsHTML").html(alertsHTML);
+  $("#trafficAlerts").html(alertsHTML);
 
   var jamsHTML = "";
   if(trafficData.jams) {
@@ -241,5 +250,19 @@ function updatePlaceDescription(descriptionData) {
 function callAPI(url, callback) {
   console.log("Calling " + url);
   $.getJSON(url, callback);
+}
+
+function latLonDistance(lat1, lon1, lat2, lon2) {
+  var R = 3959;
+  var dLat = deg2rad(lat2 - lat1);
+  var dLon = deg2rad(lon2 - lon1);
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  var d = R * c;
+  return d;
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI / 180);
 }
 
