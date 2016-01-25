@@ -1,5 +1,11 @@
 var currentLat;
 var currentLon;
+var currentHeading;
+var currentTime;
+var prevLat;
+var prevLon;
+var prevTime;
+
 var currentCity;
 var currentState;
 var currentTemp;
@@ -9,9 +15,9 @@ var currentPlaceDescription;
 var photoCSS;
 
 var PHOTO_TAGS = "nature,city,landscape,beautiful,scenic,sky";
-var DATA_REFRESH_DELAY = 120 * 1000;
+var DATA_REFRESH_DELAY = 60 * 1000;
 var PAGE_REFRESH_DELAY = 14400 * 1000;
-var IMAGE_LOAD_DELAY = 10 * 1000;
+var IMAGE_LOAD_DELAY = 5 * 1000;
 
 function init() {
   getPosition();
@@ -28,7 +34,13 @@ function updatePosition(position) {
 
   currentLat = position.coords.latitude;
   currentLon = position.coords.longitude;
+  currentHeading = position.coords.heading;
+  currentTime = new Date().getTime();
 
+  if(currentLat == prevLat && currentLon == prevLon) {
+    return;
+  }
+  
   // $("#latDisplay").html(currentLat);
   // $("#lonDisplay").html(currentLon);
   
@@ -43,6 +55,27 @@ function updatePosition(position) {
 
   //Make the status display visible
   setTimeout(function(){$("#statusDisplay").css('display', "block");}, IMAGE_LOAD_DELAY);
+
+  //Check for traffic incidents upcoming on the route
+  if(prevLat != null && prevLon != null) {
+    var latDiff = currentLat - prevLat;
+    var lonDiff = currentLon - prevLon;
+    var predictedLat = currentLat + (10 * latDiff);
+    var predictedLon = currentLon + (10 * lonDiff);
+    var minLat = Math.min(currentLat, predictedLat);
+    var maxLat = Math.max(currentLat, predictedLat);
+    var minLon = Math.min(currentLon, predictedLon);
+    var maxLon = Math.max(currentLon, predictedLon);
+    minLat = minLat - 0.005;
+    maxLat = maxLat + 0.005;
+    minLon = minLon - 0.005;
+    maxLon = maxLon + 0.005;
+    setTimeout(function(){callAPI("traffic.php?left=" + minLon + "&right=" + maxLon + "&bottom=" + minLat + "&top=" + maxLat, updateTraffic);}, IMAGE_LOAD_DELAY);
+  }
+
+  prevLat = currentLat;
+  prevLon = currentLon;
+  prevTime = currentTime;
 }
 
 function updateCity(locationData) {
@@ -73,7 +106,7 @@ function updateCity(locationData) {
 }
 
 function updateWeather(weatherData) {
-  console.log(weatherData);
+  //console.log(weatherData);
   var temp = weatherData.currentobservation.Temp;
   var weather = weatherData.data.weather[0];
 
@@ -87,8 +120,66 @@ function updateWeather(weatherData) {
   }
 }
 
+function updateTraffic(trafficData) {
+  console.log(trafficData);
+  var noneHTML = "<span class='none'>none</span>";
+
+  var alertsHTML = "";
+  if(trafficData.alerts) {
+    for(var i = 0; i < trafficData.alerts.length; i++) {
+      var alert = trafficData.alerts[i];
+      if(alert.type == "CHAT_CHAT") {
+        continue;
+      }
+      alertsHTML += "<li>" + alert.type;
+      if(alert.subtype) {
+        alertsHTML += " / " + alert.subtype;
+      }
+      if(alert.street) {
+        alertsHTML += "<br />" + alert.street;
+      }
+      alertsHTML += "</li>";
+    }
+  }
+  else {
+    alertsHTML = noneHTML;
+  }
+  if(alertsHTML == "") {
+    alertsHTML = noneHTML;
+  }
+  $("#alertsHTML").html(alertsHTML);
+
+  var jamsHTML = "";
+  if(trafficData.jams) {
+    for(var i = 0; i < trafficData.jams.length; i++) {
+      var jam = trafficData.jams[i];
+      if(jam.severity < 2 || !jam.street) {
+        continue;
+      }
+      jamsHTML += "<li>" + jam.street;
+      if(jam.endNode) {
+        jamsHTML += " " + jam.endNode;
+      }
+      if(jam.blockDescription && jam.blockDescription.substring(0,4) != "http") {
+        jamsHTML += "<br />" + jam.blockDescription;
+      }
+      else {
+        jamsHTML += "<br />" + Math.round(jam.speed) + " mph";
+      }
+      jamsHTML += "</li>";
+    }
+  }
+  else {
+    jamsHTML = noneHTML;
+  }
+  if(jamsHTML == "") {
+    jamsHTML = noneHTML;
+  }
+  $("#trafficJams").html(jamsHTML);
+}
+
 function updatePicture(pictureData) {
-  console.log(pictureData);
+  //console.log(pictureData);
   if(pictureData.photos.total > 0) {
     var photoID = pictureData.photos.photo[0].id;
     if(photoID && photoID != currentPhotoID) {
@@ -100,7 +191,7 @@ function updatePicture(pictureData) {
 }
 
 function updateBackgroundImage(imageData) {
-  console.log(imageData);
+  //console.log(imageData);
   var photoURL;
   for(var i in imageData.sizes.size) {
     var size = imageData.sizes.size[i];
@@ -110,18 +201,18 @@ function updateBackgroundImage(imageData) {
     }
   }
   if(photoURL) {
-    photoCSS = "url(" + photoURL + ") no-repeat center fixed";
+    photoCSS = "url(" + photoURL + ")";
     
     //Fade to the new image
     $("#backgroundImageSwap").css('opacity', 1.0);
     $("#backgroundImageSwap").css('display', "block");
-    $("#backgroundImage").css('background', photoCSS);
-    setTimeout(function(){$("#backgroundImageSwap").fadeOut(1000, function(){$("#backgroundImageSwap").css('background', photoCSS);});}, IMAGE_LOAD_DELAY);
+    $("#backgroundImage").css('background-image', photoCSS);
+    setTimeout(function(){$("#backgroundImageSwap").fadeOut(1000, function(){$("#backgroundImageSwap").css('background-image', photoCSS);});}, IMAGE_LOAD_DELAY);
   }
 }
 
 function updatePhotoOwner(ownerData) {
-  console.log(ownerData);
+  //console.log(ownerData);
   var ownerUsername = ownerData.person.username._content;
   if(ownerUsername) {
     $("#photoOwnerName").html(ownerUsername);
@@ -129,7 +220,7 @@ function updatePhotoOwner(ownerData) {
 }
 
 function updatePlaceDescription(descriptionData) {
-  console.log(descriptionData);
+  //console.log(descriptionData);
   var description;
   for(var key in descriptionData.query.pages) {
     description = descriptionData.query.pages[key].extract;
@@ -137,6 +228,9 @@ function updatePlaceDescription(descriptionData) {
   
   //Stop the description at the end of the first paragraph
   description = description.substring(0, description.indexOf("</p>") + 3);
+
+  //Try to remove pronunciation guides
+  description = description.replace(/\s?\(\<span\>.*\<\/span\>\)\s?/g, "");
   
   if(description && description != currentPlaceDescription) {
     $("#placeDescription").html(description);
@@ -145,5 +239,7 @@ function updatePlaceDescription(descriptionData) {
 }
 
 function callAPI(url, callback) {
+  console.log("Calling " + url);
   $.getJSON(url, callback);
 }
+
